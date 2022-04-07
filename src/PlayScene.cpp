@@ -532,7 +532,6 @@ void PlayScene::m_checkAllNodesWithBoth()
 			if (CollisionManager::Distance(m_pSpaceShip->getTransform()->position, ShortestpathNode)< 40.0f ||
 				CollisionManager::Distance(m_pTarget->getTransform()->position, ShortestpathNode) < 40.0f)
 			{
-				//std::cout << "distance: " << CollisionManager::Distance(m_pSpaceShip->getTransform()->position, ShortestpathNode) << std::endl;
 				m_pTarget->setLOSwithPlayer(true);
 			}
 			else {
