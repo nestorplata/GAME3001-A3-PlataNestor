@@ -228,7 +228,7 @@ void PlayScene::handleEvents()
 	{
 		if (m_pSpaceShipLifeBar->getWidth() > 0)
 		{
-			std::cout << "15 damage points dealt to target" << std::endl;
+			std::cout << "15 damage points dealt to Player" << std::endl;
 			m_pSpaceShipLifeBar->setWidth(m_pSpaceShipLifeBar->getWidth() - 15);
 			m_pSpaceShipLifeBar->getTransform()->position.x = m_pSpaceShipLifeBar->getTransform()->position.x - 7.5;
 			m_isKeyKdown = false;
