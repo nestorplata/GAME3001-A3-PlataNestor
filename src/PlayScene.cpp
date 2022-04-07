@@ -529,14 +529,17 @@ void PlayScene::m_checkAllNodesWithBoth()
 
 		if (LOSWithSpaceShip && LOSWithTarget)
 		{
-			if (CollisionManager::Distance(m_pSpaceShip->getTransform()->position, ShortestpathNode)< 40.0f ||
-				CollisionManager::Distance(m_pTarget->getTransform()->position, ShortestpathNode) < 40.0f)
-			{
-				m_pTarget->setLOSwithPlayer(true);
+			if (m_isGridEnabled) {
+				if (CollisionManager::Distance(m_pSpaceShip->getTransform()->position, ShortestpathNode) < 40.0f ||
+					CollisionManager::Distance(m_pTarget->getTransform()->position, ShortestpathNode) < 40.0f)
+				{
+					m_pTarget->setLOSwithPlayer(true);
+				}
+				else {
+					m_pTarget->setLOSwithPlayer(false);
+				}
 			}
-			else {
-				m_pTarget->setLOSwithPlayer(false);
-			}
+
 
 			
 			if (CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position) ==
