@@ -21,6 +21,8 @@ public:
 	float getAccelerationRate() const;
 	glm::vec2 getDesiredVelocity() const;
 	bool getisSword();
+	glm::vec2 getSwordPoint();
+	bool getisRunning();
 
 	void setMaxSpeed(float speed);
 	void setTurnRate(float angle);
@@ -30,7 +32,7 @@ public:
 
 	// public functions
 	//void Seek();
-	//void LookWhereYoureGoing(glm::vec2 target_direction);
+	void LookWhereYoureGoing(glm::vec2 target_direction);
 
 private:
 	// private movement variables

@@ -1,12 +1,15 @@
-#include "Target.h"
+#include "RangeCombatEnemy.h"
 
 #include "SoundManager.h"
 #include "TextureManager.h"
+#include "PlayScene.h"
 
 
-Target::Target()
+RangeCombatEnemy::RangeCombatEnemy(Scene* scene)
 {
-	TextureManager::Instance().load("../Assets/textures/Ship3.png","Enemy");
+	std::cout << "RangeCombatEnemyCreated" << std::endl;
+	m_pScene = scene;
+	TextureManager::Instance().load("../Assets/textures/Ship3.png", "Enemy");
 
 	const auto size = TextureManager::Instance().getTextureSize("Enemy");
 	setWidth(size.x);
@@ -15,15 +18,15 @@ Target::Target()
 	getRigidBody()->velocity = glm::vec2(0, 0);
 	getRigidBody()->isColliding = false;
 
+	setState(PATROL);
 
-	
 	setType(TARGET);
 }
 
-Target::~Target()
+RangeCombatEnemy::~RangeCombatEnemy()
 = default;
 
-void Target::draw()
+void RangeCombatEnemy::draw()
 {
 
 	//TextureManager::Instance().draw("space_ship", x, y, getCurrentHeading(), 255, isCentered());
@@ -37,28 +40,24 @@ void Target::draw()
 	TextureManager::Instance().draw("Enemy", x, y, getCurrentHeading(), 255, isCentered());
 }
 
-void Target::update()
+void RangeCombatEnemy::update()
 {
-	//switch(state)
-	//{
-	//case MOVE_TO_PLAYER:
-	//	m_isSword = false;
-	//}
+	dynamic_cast<PlayScene*>(m_pScene)->m_RangeCombatEnemyBehaviour();
 }
 
-void Target::clean()
+void RangeCombatEnemy::clean()
 {
 }
 
-void Target::m_move()
+void RangeCombatEnemy::m_move()
 {
-	
+
 }
 
-void Target::m_checkBounds()
+void RangeCombatEnemy::m_checkBounds()
 {
 }
 
-void Target::m_reset()
+void RangeCombatEnemy::m_reset()
 {
 }

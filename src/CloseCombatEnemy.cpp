@@ -1,12 +1,16 @@
-#include "Target.h"
+#include "CloseCombatEnemy.h"
 
 #include "SoundManager.h"
 #include "TextureManager.h"
+#include "PlayScene.h"
 
 
-Target::Target()
+CloseCombatEnemy::CloseCombatEnemy(Scene* scene)
 {
-	TextureManager::Instance().load("../Assets/textures/Ship3.png","Enemy");
+	std::cout << "CloseCombatEnemyCreated" << std::endl;
+
+	m_pScene = scene;
+	TextureManager::Instance().load("../Assets/textures/Ship3.png", "Enemy");
 
 	const auto size = TextureManager::Instance().getTextureSize("Enemy");
 	setWidth(size.x);
@@ -15,15 +19,15 @@ Target::Target()
 	getRigidBody()->velocity = glm::vec2(0, 0);
 	getRigidBody()->isColliding = false;
 
+	setState(PATROL);
 
-	
 	setType(TARGET);
 }
 
-Target::~Target()
+CloseCombatEnemy::~CloseCombatEnemy()
 = default;
 
-void Target::draw()
+void CloseCombatEnemy::draw()
 {
 
 	//TextureManager::Instance().draw("space_ship", x, y, getCurrentHeading(), 255, isCentered());
@@ -37,28 +41,24 @@ void Target::draw()
 	TextureManager::Instance().draw("Enemy", x, y, getCurrentHeading(), 255, isCentered());
 }
 
-void Target::update()
+void CloseCombatEnemy::update()
 {
-	//switch(state)
-	//{
-	//case MOVE_TO_PLAYER:
-	//	m_isSword = false;
-	//}
+	dynamic_cast<PlayScene*>(m_pScene)->m_CloseCombatEnemyBehaviour();
 }
 
-void Target::clean()
+void CloseCombatEnemy::clean()
 {
 }
 
-void Target::m_move()
+void CloseCombatEnemy::m_move()
 {
-	
+
 }
 
-void Target::m_checkBounds()
+void CloseCombatEnemy::m_checkBounds()
 {
 }
 
-void Target::m_reset()
+void CloseCombatEnemy::m_reset()
 {
 }

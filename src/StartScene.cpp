@@ -48,7 +48,7 @@ void StartScene::start()
 	const SDL_Color blue = { 0, 0, 255, 255 };
 	const SDL_Color red = { 255, 0, 0, 255 };
 
-	m_pAsginmentName = new Label("A3_Decision Making", "Consolas", 50, red, glm::vec2(300.0f, 100.0f));
+	m_pAsginmentName = new Label("A4_AI_Behaviour", "Consolas", 50, red, glm::vec2(300.0f, 100.0f));
 	m_pAsginmentName->setParent(this);
 	addChild(m_pAsginmentName);
 

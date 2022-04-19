@@ -47,9 +47,13 @@ void Bullet::draw()
 
 void Bullet::update()
 {
-	getTransform()->position = getTransform()->position + direction * glm::vec2(5.0f, 5.0f);
+	getTransform()->position = getTransform()->position + direction * glm::vec2(7.0f, 7.0f);
+
+
 }
 
 void Bullet::clean()
 {
 }
+
+

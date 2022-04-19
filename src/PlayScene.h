@@ -6,7 +6,10 @@
 #include "Heuristic.h"
 #include "Label.h"
 
-#include "Target.h"
+//#include "Target.h"
+#include "CloseCombatEnemy.h"
+#include "RangeCombatEnemy.h"
+
 #include "SpaceShip.h"
 #include "Obstacle.h"
 #include "PathNode.h"
@@ -27,6 +30,10 @@ public:
 	virtual void clean() override;
 	virtual void handleEvents() override;
 	virtual void start() override;
+
+
+	void m_CloseCombatEnemyBehaviour();
+	void m_RangeCombatEnemyBehaviour();
 private:
 	// IMGUI Function
 	void GUI_Function();
@@ -57,10 +64,12 @@ private:
 	bool m_isPlayerDetected;
 
 	bool m_deathsoundplayed= false;
-	
+
 	int enemiesDefeated;
+	int random;
+	int counter;
 	// Game Objects
-	Target* m_pTarget;
+	BaseEnemy* m_pTarget;
 	SpaceShip* m_pSpaceShip;
 	LifeBar* m_pSpaceShipLifeBar;
 	LifeBar* m_pEnemyLifeBar;
@@ -76,7 +85,7 @@ private:
 	std::vector<Obstacle*> m_pObstacles;	
 	std::vector<Bullet*> m_pBullets;
 
-
+	bool damageDone;
 	TargetMovement MovementType;
 
 	void m_buildGrid();
@@ -91,12 +100,37 @@ private:
 	void m_clearNodes();
 	void m_createObstaclesFromFile();
 	void m_createBullets();
+	void m_createEnemyBullets();
+	void m_damagePlayer();
+	void m_damageTarget();
 
+
+
+	void MoveRandomly();
+	void MoveToTarget();
+	void RunFromTarget();
+	void LookToTarget();
+	void MoveToLOS();
+	void MoveToRange();
+	void MoveBehindCover();
+	void WaitBehindCover();
+	void RangedAttack();
+
+	
+	int EnemyDetection = 200;
 
 	int m_obstacleBuffer;
 	int m_pathNodeLOSDistance;
 	int angle;
+
 	glm::vec2 ShortestpathNode;
+	glm::vec2 NoLOSShortestpathNode;
+	glm::vec2 RangeShortestpathNode;
+
+
+
+
+
 };
 
 #endif /* defined (__PLAY_SCENE__) */

@@ -24,6 +24,8 @@ PlayScene::~PlayScene()
 void PlayScene::draw()
 {
 	drawDisplayList();
+
+	m_pTarget->m_drawSword();
 	if (m_isGridEnabled)
 	{
 		glm::vec2 LeftTopCorner = glm::vec2(m_pSpaceShip->getTransform()->position.x - m_pSpaceShip->getWidth() / 2,
@@ -36,8 +38,14 @@ void PlayScene::draw()
 
 	if (m_isShortestPathEnabled)
 	{
-		Util::DrawLine(m_pSpaceShip->getTransform()->position, ShortestpathNode, glm::vec4(1, 0, 1, 1));
+		//Util::DrawLine(m_pSpaceShip->getTransform()->position, ShortestpathNode, glm::vec4(1, 0, 1, 1));
 		Util::DrawLine(ShortestpathNode, m_pTarget->getTransform()->position, glm::vec4(1, 0, 1, 1));
+
+		//Util::DrawLine(m_pSpaceShip->getTransform()->position, ShortestpathNode, glm::vec4(1, 1, 1, 1));
+		Util::DrawLine(NoLOSShortestpathNode, m_pTarget->getTransform()->position, glm::vec4(0, 0, 0, 1));
+
+		Util::DrawLine(RangeShortestpathNode, m_pSpaceShip->getTransform()->position, glm::vec4(1, 0, 0, 1));
+		
 	}
 	SDL_SetRenderDrawColor(Renderer::Instance().getRenderer(), 255, 255, 255, 255);
 
@@ -57,7 +65,39 @@ void PlayScene::draw()
 
 void PlayScene::update()
 {
+
+
 	updateDisplayList();
+
+	//rehistering hits
+
+	for (auto bullets : m_pBullets) {
+		if (CollisionManager::Distance(bullets->getTransform()->position, m_pSpaceShip->getTransform()->position) < 40)
+		{
+			std::cout << "damage Taken" << std::endl;
+			m_damagePlayer();
+			removeChild(bullets);
+		}
+		if (CollisionManager::Distance(bullets->getTransform()->position, m_pTarget->getTransform()->position) < 40)
+		{
+			std::cout << "damage Dealt" << std::endl;
+			m_damageTarget();
+			removeChild(bullets);
+		}
+	}
+
+	if (!damageDone &&CollisionManager::lineRectCheck(m_pSpaceShip->getCurrentDirection() * 30.0f, 
+		m_pSpaceShip->getSwordPoint(), m_pTarget->getTransform()->position - glm::vec2(m_pTarget->getWidth()/2, 
+			m_pTarget->getHeight()), m_pTarget->getWidth(), m_pTarget->getHeight()))
+	{
+		m_damageTarget();
+		damageDone = true;
+
+	}
+	else if (!m_pTarget->getisSword())
+	{
+		damageDone = false;
+	}
 
 
 	m_checkAgentLOS(m_pSpaceShip, m_pTarget);
@@ -84,77 +124,78 @@ void PlayScene::update()
 		break;
 
 	case MOVE_RANDOMLY:
-		for (auto path_node : m_pGrid)
-		{
-			bool LOSWithTarget = m_checkPathNodeLOS(path_node, m_pTarget);
-
-			if (LOSWithTarget && CollisionManager::Distance(path_node->getTransform()->position, m_pTarget->getTransform()->position) < 1000 && Choosen == NULL)
-			{
-				int random = rand() % 10;
-				if (random == 0)
-					Choosen = path_node;
-
-			}
-		}
-
-		if (Choosen)
-		{
-			glm::vec2 difference = Choosen->getTransform()->position - m_pTarget->getTransform()->position;
-			m_pTarget->getTransform()->position = m_pTarget->getTransform()->position + glm::vec2(difference.x / 20, difference.y / 20);
-
-			if (CollisionManager::Distance(Choosen->getTransform()->position, m_pTarget->getTransform()->position) < 5)
-			{
-				Choosen = NULL;
-			}
-		}
+		MoveRandomly();
 		break;
 
 	case PATROL:
 		//m_pTarget->setState(PATROL);
 		m_pTarget->m_Patrol();
+		m_pTarget->setisSword(false);
+
+		break;
+
+	case MOVE_TO_PLAYER:
+		MoveToTarget();
+		LookToTarget();
+
+		m_pTarget->setisSword(false);
+		break;
+
+	case CLOSE_COMBAT_ATTACK:
+		LookToTarget();
+		m_pTarget->m_Attack();
+		m_pTarget->setisSword(true);
+		if (m_pTarget->m_DamageDealt())
+		{
+			m_damagePlayer();
+		}
+		break;
+
+	case FLEE:
+		RunFromTarget();
+		break;
+
+	case MOVE_TO_LOS:
+		MoveToLOS();
+		break;
+	case MOVE_BEHIND_COVER:
+		MoveBehindCover();
+		break;
+
+	case WAIT_BEHIND_COVER:
+		WaitBehindCover();
+		break;
+
+	case MOVE_TO_RANGE:
+		MoveToRange();
+
+		break;
+	case RANGED_ATTACK:
+		RangedAttack();
 		break;
 
 	case TAKING_DAMAGE:
 		//m_pTarget->setState(TAKING_DAMAGE);
 		m_pTarget->m_TakingDamage();
-
+		//MovementType = MOVE_BEHIND_COVER;
 		break;
 
 	case DEFEAT:
 		//m_pTarget->setState(DEFEAT);
 		m_pTarget->m_Defeat();
-		break;
+
 	}
 
-	if (m_pEnemyLifeBar->getWidth() <= 0)
+	if (CollisionManager::circleAABBCheck(m_pSpaceShip, m_pTarget))
 	{
-		SoundManager::Instance().setSoundVolume(100);
-		if (m_deathsoundplayed == false)
-		{
-			std::cout << "enemy death"<<std::endl;
-			SoundManager::Instance().playSound("death2", 0, 3);
-			m_deathsoundplayed = true;
-		}
-
-		MovementType == DEFEAT;
-		enemiesDefeated = 1;
-	}
-	else if(CollisionManager::circleAABBCheck(m_pSpaceShip, m_pTarget))
-	{
-		SoundManager::Instance().playSound("punch", 0, 2);
-
-		MovementType = TAKING_DAMAGE;
-		m_pEnemyLifeBar->setWidth(m_pEnemyLifeBar->getWidth() - 30);
-		m_pEnemyLifeBar->getTransform()->position.x =m_pEnemyLifeBar->getTransform()->position.x + 15.0;
+		m_damagePlayer();
 
 	}
-	else if(MovementType!=IDLE){
-		MovementType = PATROL;
-	}
 
-	m_pTarget->m_ifHasLOS();
+	//m_CloseCombatEnemyBehaviour();
+	//m_RangeCombatEnemyBehaviour();
+
 	
-
 
 }
 
@@ -181,6 +222,8 @@ void PlayScene::handleEvents()
 	{
 		TheGame::Instance().changeSceneState(END_SCENE);
 	}
+
+
 
 	//debugging
 	if (EventManager::Instance().isKeyDown(SDL_SCANCODE_H) && m_isKeyHdown)
@@ -226,17 +269,7 @@ void PlayScene::handleEvents()
 
 	if (EventManager::Instance().isKeyDown(SDL_SCANCODE_K) && m_isKeyKdown) //debug player life
 	{
-		if (m_pSpaceShipLifeBar->getWidth() > 0)
-		{
-			std::cout << "15 damage points dealt to Player" << std::endl;
-			m_pSpaceShipLifeBar->setWidth(m_pSpaceShipLifeBar->getWidth() - 15);
-			m_pSpaceShipLifeBar->getTransform()->position.x = m_pSpaceShipLifeBar->getTransform()->position.x - 7.5;
-			m_isKeyKdown = false;
-		}
-		else {
-			std::cout << "Player is dead" << std::endl;
-
-		}
+		m_damagePlayer();
 
 	}
 
@@ -277,6 +310,32 @@ void PlayScene::handleEvents()
 
 		m_isRightFacedown = true;
 	}
+
+	if (EventManager::Instance().keyPressed(SDL_SCANCODE_3))
+	{
+		MovementType = FLEE;
+	}
+
+	if (EventManager::Instance().keyPressed(SDL_SCANCODE_4))
+	{
+		MovementType = MOVE_TO_LOS;
+	}
+
+	if (EventManager::Instance().keyPressed(SDL_SCANCODE_5))
+	{
+		MovementType = MOVE_BEHIND_COVER;
+	}
+
+	if (EventManager::Instance().keyPressed(SDL_SCANCODE_6))
+	{
+		MovementType = WAIT_BEHIND_COVER;
+	}
+	if (EventManager::Instance().keyPressed(SDL_SCANCODE_7))
+	{
+		MovementType = RANGED_ATTACK;
+	}
+
+
 
 	//SpaceShip Movement
 	glm::vec2 SpaceShipPosition = m_pSpaceShip->getTransform()->position;
@@ -375,7 +434,12 @@ void PlayScene::start()
 	m_pEnemyLifeBar->setHeight(25);
 	addChild(m_pEnemyLifeBar, 5);
 
-	m_pTarget = new Target();
+	//int EnemyGenerator = rand() % 2;
+	//if (EnemyGenerator == 0)
+	//	m_pTarget = new CloseCombatEnemy(this);
+	//else
+		m_pTarget = new RangeCombatEnemy(this);
+
 	m_pTarget->getTransform()->position = glm::vec2(400.0f, 500.0f);
 	addChild(m_pTarget, 3);
 
@@ -518,18 +582,29 @@ void PlayScene::m_checkAllNodesWithBoth()
 {
 	int Shortestdistance= m_pathNodeLOSDistance* m_pathNodeLOSDistance;
 	int ShortestMidPoint= m_pathNodeLOSDistance* m_pathNodeLOSDistance/2;
+
+	int NoLOSShortestlDistance = m_pathNodeLOSDistance;
+	int RangeShortestlDistance = m_pathNodeLOSDistance;
+
+
+
 	for (auto path_node : m_pGrid)
 	{
 		bool LOSWithSpaceShip = m_checkPathNodeLOS(path_node, m_pSpaceShip);
 		bool LOSWithTarget = m_checkPathNodeLOS(path_node, m_pTarget);
-		path_node->setHasLOS(LOSWithSpaceShip, glm::vec4(0, 0, 1, 1));
-		path_node->setHasLOS(LOSWithTarget, glm::vec4(0, 1, 0, 1));
+		//path_node->setHasLOS(LOSWithSpaceShip, glm::vec4(0, 0, 1, 1));
+		//path_node->setHasLOS(LOSWithTarget, glm::vec4(0, 1, 0, 1));
 		path_node->setHasLOS(LOSWithSpaceShip && LOSWithTarget, glm::vec4(0, 1, 1, 1));
 		
+		//if (CollisionManager::Distance(path_node->getTransform()->position, m_pSpaceShip->getTransform()->position)<65)
+		//{
+		//	path_node->setHasLOS(LOSWithSpaceShip, glm::vec4(0, 1, 0, 1));
 
-		if (LOSWithSpaceShip && LOSWithTarget)
+		//}
+		if (LOSWithTarget)
 		{
-			if (m_isGridEnabled) {
+			if (LOSWithSpaceShip)
+			{
 				if (CollisionManager::Distance(m_pSpaceShip->getTransform()->position, ShortestpathNode) < 40.0f ||
 					CollisionManager::Distance(m_pTarget->getTransform()->position, ShortestpathNode) < 40.0f)
 				{
@@ -538,41 +613,88 @@ void PlayScene::m_checkAllNodesWithBoth()
 				else {
 					m_pTarget->setLOSwithPlayer(false);
 				}
+
+
+
+
+
+
+				if (CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position) ==
+					CollisionManager::squaredDistance(path_node->getTransform()->position, m_pTarget->getTransform()->position))
+				{
+					glm::vec2 ship = m_pSpaceShip->getTransform()->position;
+					glm::vec2 target = m_pTarget->getTransform()->position;
+
+					glm::vec2 MidPoint = glm::vec2((ship.x + target.x) / 2, (ship.y + target.y) / 2);
+
+					if (CollisionManager::squaredDistance(MidPoint, path_node->getTransform()->position) < ShortestMidPoint)
+					{
+						ShortestMidPoint = CollisionManager::squaredDistance(MidPoint, path_node->getTransform()->position);
+						ShortestpathNode = path_node->getTransform()->position;
+					}
+				}
+				else {
+					if (CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position) < Shortestdistance)
+					{
+						Shortestdistance = CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position);
+						ShortestpathNode = path_node->getTransform()->position;
+
+					}
+					else if (CollisionManager::squaredDistance(path_node->getTransform()->position, m_pTarget->getTransform()->position) < Shortestdistance)
+					{
+						Shortestdistance = CollisionManager::squaredDistance(path_node->getTransform()->position, m_pTarget->getTransform()->position);
+						ShortestpathNode = path_node->getTransform()->position;
+
+					}
+
+
+				}
 			}
+			float distance = CollisionManager::Distance(path_node->getTransform()->position, m_pSpaceShip->getTransform()->position);
+			float distance2 = CollisionManager::Distance(path_node->getTransform()->position, m_pTarget->getTransform()->position);
 
-
-			
-			if (CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position) ==
-				CollisionManager::squaredDistance(path_node->getTransform()->position, m_pTarget->getTransform()->position))
+			if (distance > 150 && distance < 250)
 			{
-				glm::vec2 ship = m_pSpaceShip->getTransform()->position;
-				glm::vec2 target = m_pTarget->getTransform()->position;
-
-				glm::vec2 MidPoint = glm::vec2((ship.x + target.x) / 2 , (ship.y + target.y) / 2);
-
-				if (CollisionManager::squaredDistance(MidPoint, path_node->getTransform()->position) < ShortestMidPoint)
-				{
-					ShortestMidPoint = CollisionManager::squaredDistance(MidPoint, path_node->getTransform()->position);
-					ShortestpathNode = path_node->getTransform()->position;
-				}
-			}
-			else {
-				if (CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position) < Shortestdistance)
-				{
-					Shortestdistance = CollisionManager::squaredDistance(m_pSpaceShip->getTransform()->position, path_node->getTransform()->position);
-					ShortestpathNode = path_node->getTransform()->position;
-
-				}
-				else if (CollisionManager::squaredDistance(path_node->getTransform()->position, m_pTarget->getTransform()->position) < Shortestdistance)
-				{
-					Shortestdistance = CollisionManager::squaredDistance(path_node->getTransform()->position, m_pTarget->getTransform()->position);
-					ShortestpathNode = path_node->getTransform()->position;
-
-				}
-
 				
+				if (distance2 < RangeShortestlDistance)
+				{
+					RangeShortestlDistance = distance2;
+					if (CollisionManager::Distance(path_node->getTransform()->position, ShortestpathNode) < 75)
+					{
+						RangeShortestpathNode = path_node->getTransform()->position;
+
+					}
+
+				}
+
+			}
+			//switch (MovementType)
+			//{
+			//case MOVE_TO_RANGE:
+
+
+
+
+			//	break;
+
+			//case MOVE_TO_LOS:
+			//{
+			//	break;
+			//}
+			//}
+			if (!LOSWithSpaceShip)
+			{
+				if (CollisionManager::Distance(path_node->getTransform()->position, m_pSpaceShip->getTransform()->position) < NoLOSShortestlDistance)
+				{
+					NoLOSShortestlDistance = CollisionManager::Distance(path_node->getTransform()->position, m_pSpaceShip->getTransform()->position);
+					if (CollisionManager::Distance(path_node->getTransform()->position, ShortestpathNode) < 100)
+					{
+						NoLOSShortestpathNode = path_node->getTransform()->position;
+					}
+				}
 			}
 		}
+
 	}
 
 }
@@ -662,9 +784,348 @@ void PlayScene::m_createObstaclesFromFile()
 
 void PlayScene::m_createBullets()
 {
-	Bullet* bullet = new Bullet(m_pSpaceShip->getTransform()->position, m_pSpaceShip->getCurrentDirection(), 30.0f);
+	Bullet* bullet = new Bullet(m_pSpaceShip->getTransform()->position, m_pSpaceShip->getCurrentDirection(), 40.0f);
 	addChild(bullet, 1);
 	m_pBullets.push_back(bullet);
+
+}
+
+void PlayScene::m_createEnemyBullets()
+{
+	SoundManager::Instance().playSound("fire", 0);
+	SoundManager::Instance().setSoundVolume(50);
+	Bullet* bullet = new Bullet(m_pTarget->getTransform()->position, m_pTarget->getCurrentDirection(), 40.0f);
+	addChild(bullet, 1);
+	m_pBullets.push_back(bullet);
+	//if( )
+
+}
+
+void PlayScene::m_damagePlayer()
+{
+	if (m_pSpaceShipLifeBar->getWidth() > 0)
+	{
+		SoundManager::Instance().playSound("punch", 0, 2);
+		std::cout << "15 damage points dealt to Player" << std::endl;
+		m_pSpaceShipLifeBar->setWidth(m_pSpaceShipLifeBar->getWidth() - 15);
+		m_pSpaceShipLifeBar->getTransform()->position.x = m_pSpaceShipLifeBar->getTransform()->position.x - 7.5;
+		m_isKeyKdown = false;
+	}
+	else {
+
+		std::cout << "Player is dead" << std::endl;
+
+	}
+}
+
+void PlayScene::m_damageTarget()
+{
+	if (m_pEnemyLifeBar->getWidth() > 0)
+	{
+		SoundManager::Instance().playSound("punch", 0, 2);
+
+		MovementType = TAKING_DAMAGE;
+		m_pEnemyLifeBar->setWidth(m_pEnemyLifeBar->getWidth() - 30);
+		m_pEnemyLifeBar->getTransform()->position.x = m_pEnemyLifeBar->getTransform()->position.x + 15.0;
+	}
+	else {
+
+		std::cout << "Enemy is dead" << std::endl;
+
+	}
+}
+
+void PlayScene::m_CloseCombatEnemyBehaviour()
+{
+	float distance = Util::distance(m_pSpaceShip->getTransform()->position, m_pTarget->getTransform()->position);
+
+	//Close Combat Enemy Behaviour
+	if (m_pEnemyLifeBar->getWidth() <= 0)
+	{
+		SoundManager::Instance().setSoundVolume(100);
+		if (m_deathsoundplayed == false)
+		{
+			std::cout << "enemy death" << std::endl;
+			SoundManager::Instance().playSound("death2", 0, 3);
+			m_deathsoundplayed = true;
+		}
+
+		MovementType == DEFEAT;
+		enemiesDefeated = 1;
+	}
+	else if (MovementType != IDLE)
+	{
+		if (m_pEnemyLifeBar->getWidth() < 40)
+		{
+			MovementType = FLEE;
+		}
+		else if (!m_pTarget->getLOSwithPlayer() && distance < 200)
+		{
+			MovementType = MOVE_TO_LOS;
+		}
+		else if (m_pTarget->getLOSwithPlayer())
+		{
+			if (distance < 80)
+			{
+				MovementType = CLOSE_COMBAT_ATTACK;
+
+			}
+			else {
+				MovementType = MOVE_TO_PLAYER;
+
+			}
+		}
+		else {
+			MovementType = PATROL;
+		}
+
+	}
+}
+
+void PlayScene::m_RangeCombatEnemyBehaviour()
+{
+	float distance = Util::distance(m_pSpaceShip->getTransform()->position, m_pTarget->getTransform()->position);
+
+	//Close Combat Enemy Behaviour
+	if (m_pEnemyLifeBar->getWidth() <= 0)
+	{
+		SoundManager::Instance().setSoundVolume(100);
+		if (m_deathsoundplayed == false)
+		{
+			std::cout << "enemy death" << std::endl;
+			SoundManager::Instance().playSound("death2", 0, 3);
+			m_deathsoundplayed = true;
+		}
+
+		MovementType == DEFEAT;
+		enemiesDefeated = 1;
+	}
+	else if (MovementType != IDLE)
+	{
+
+		if (m_pEnemyLifeBar->getWidth() < 40)
+		{
+			MovementType = FLEE;
+		}
+		else if(MovementType == TAKING_DAMAGE)
+		{
+			MovementType = MOVE_BEHIND_COVER;
+
+		}
+		else if (!m_pTarget->getLOSwithPlayer() && distance < 200)
+		{
+			MovementType = MOVE_TO_LOS;
+		}
+		else if (m_pTarget->getLOSwithPlayer())
+		{
+			if (distance<240)
+			{
+				MovementType = RANGED_ATTACK;
+			}
+			else {
+				MovementType = MOVE_TO_RANGE;
+				//std::cout << "Moving To Range";
+			}
+		}
+		else {
+			MovementType = PATROL;
+		}
+
+	}
+}
+void PlayScene::MoveRandomly()
+{
+	for (auto path_node : m_pGrid)
+	{
+		bool LOSWithTarget = m_checkPathNodeLOS(path_node, m_pTarget);
+
+		if (LOSWithTarget && CollisionManager::Distance(path_node->getTransform()->position, m_pTarget->getTransform()->position) < 1000 && Choosen == NULL)
+		{
+			int random = rand() % 10;
+			if (random == 0)
+				Choosen = path_node;
+
+		}
+	}
+
+	if (Choosen)
+	{
+		glm::vec2 difference = Choosen->getTransform()->position - m_pTarget->getTransform()->position;
+		m_pTarget->getTransform()->position = m_pTarget->getTransform()->position + glm::vec2(difference.x / 20, difference.y / 20);
+
+		if (CollisionManager::Distance(Choosen->getTransform()->position, m_pTarget->getTransform()->position) < 5)
+		{
+			Choosen = NULL;
+		}
+	}
+}
+
+void PlayScene::MoveToTarget()
+{
+	glm::vec2 velocity = m_pSpaceShip->getTransform()->position - m_pTarget->getTransform()->position;
+	m_pTarget->getTransform()->position = m_pTarget->getTransform()->position + velocity / 80.0f;
+
+
+}
+
+void PlayScene::RunFromTarget()
+{
+	glm::vec2 velocity = m_pSpaceShip->getTransform()->position - m_pTarget->getTransform()->position;
+	m_pTarget->getTransform()->position = m_pTarget->getTransform()->position - Util::normalize(velocity)*3.5f;
+
+	glm::vec2 HeadinDirection = Util::normalize(m_pTarget->getTransform()->position - m_pSpaceShip->getTransform()->position);
+	float angle = atan(HeadinDirection.y / HeadinDirection.x) * (180 / (22 / 7));
+
+	//std::cout << angle << std::endl;
+
+	if (velocity.x < 0)
+	{
+		m_pTarget->setCurrentHeading(angle );
+
+	}
+	else {
+		m_pTarget->setCurrentHeading(angle-180);
+	}
+
+
+	//m_pTarget->setCurrentHeading(angle + 180);
+
+}
+
+void PlayScene::LookToTarget()
+{
+	glm::vec2 distance = m_pSpaceShip->getTransform()->position - m_pTarget->getTransform()->position;
+
+	glm::vec2 HeadinDirection = Util::normalize(m_pTarget->getTransform()->position - m_pSpaceShip->getTransform()->position);
+	float angle = atan(HeadinDirection.y / HeadinDirection.x) * (180 / (22 / 7));
+
+	//std::cout << angle << std::endl;
+
+	if (distance.x < 0)
+	{
+		m_pTarget->setCurrentHeading(angle - 180);
+
+	}
+	else {
+		m_pTarget->setCurrentHeading(angle);
+	}
+}
+
+void PlayScene::MoveToLOS()
+{
+	//std::cout << "moving to LOS" << std::endl;
+
+	glm::vec2 distance;
+	float angle;
+
+	if (CollisionManager::Distance(m_pTarget->getTransform()->position, ShortestpathNode) > 40)
+	{
+		distance = ShortestpathNode - m_pTarget->getTransform()->position;
+
+		glm::vec2 HeadinDirection = Util::normalize(distance);
+		m_pTarget->getTransform()->position = m_pTarget->getTransform()->position + distance / 50.0f;
+
+		angle= atan(HeadinDirection.y / HeadinDirection.x) * (180 / (22 / 7));
+
+	}
+	else {
+		 distance = m_pSpaceShip->getTransform()->position - m_pTarget->getTransform()->position;
+		glm::vec2 HeadinDirection = Util::normalize(distance);
+		angle = atan(HeadinDirection.y / HeadinDirection.x) * (180 / (22 / 7));
+		m_pTarget->setCurrentHeading(-angle);
+		//std::cout << "Moving To Player" << std::endl;
+
+		//MovementType = MOVE_TO_PLAYER;
+	}
+
+	if (distance.x < 0)
+	{
+		m_pTarget->setCurrentHeading(angle - 180);
+
+	}
+	else {
+		m_pTarget->setCurrentHeading(angle);
+	}
+
+
+	//std::cout << CollisionManager::Distance(m_pTarget->getTransform()->position, ShortestpathNode) << std::endl;
+
+}
+
+void PlayScene::MoveToRange()
+{
+	glm::vec2 velocity = RangeShortestpathNode - m_pTarget->getTransform()->position;
+	m_pTarget->getTransform()->position = m_pTarget->getTransform()->position + velocity / 25.0f;
+
+	//glm::vec2 distance = mRangeShortestpathNode - m_pTarget->getTransform()->position;
+
+	glm::vec2 HeadinDirection = Util::normalize(m_pTarget->getTransform()->position - m_pSpaceShip->getTransform()->position);
+	float angle = atan(HeadinDirection.y / HeadinDirection.x) * (180 / (22 / 7));
+
+	//std::cout << angle << std::endl;
+
+	if (HeadinDirection.x < 0)
+	{
+		m_pTarget->setCurrentHeading(angle);
+
+	}
+	else {
+		m_pTarget->setCurrentHeading(angle+180);
+	}
+}
+
+void PlayScene::MoveBehindCover()
+{ 
+	glm::vec2 distance = NoLOSShortestpathNode - m_pTarget->getTransform()->position;
+	glm::vec2 HeadinDirection = Util::normalize(distance);
+	float angle = atan(HeadinDirection.y / HeadinDirection.x) * (180 / (22 / 7));
+	if (distance.x < 0)
+	{
+		m_pTarget->setCurrentHeading(angle - 180);
+
+	}
+	else {
+		m_pTarget->setCurrentHeading(angle);
+	}
+
+	glm::vec2 velocity = NoLOSShortestpathNode - m_pTarget->getTransform()->position;
+	m_pTarget->getTransform()->position = m_pTarget->getTransform()->position + velocity / 60.0f;
+	
+	if (std::abs(distance.x) < 30 && std::abs(distance.y) < 30)
+	{
+		std::cout << "Waiting in Cover" << std::endl;
+		counter = 1;
+		random = (rand() % 5+3)*30;
+		//WaitBehindCover();
+		MovementType = WAIT_BEHIND_COVER;
+	}
+}
+
+void PlayScene::WaitBehindCover()
+{
+	counter++;
+	if ((counter % random) == 149)
+	{
+		m_pTarget->getTransform()->position = m_pTarget->getTransform()->position;
+		std::cout << "MovingFromCover" << std::endl;
+		MovementType = MOVE_TO_LOS;
+
+	}
+
+
+}
+
+void PlayScene::RangedAttack()
+{
+	LookToTarget();
+	random = 60;
+	counter++;
+	if ((counter % random) == 0)
+	{
+		m_createEnemyBullets();
+		std::cout << "MovingFromCover" << std::endl;
+	}
+	//m_createEnemyBullets();
 
 }
 

@@ -57,7 +57,7 @@ public:
 	void updateWhiskers(float a);
 
 
-private:
+protected:
 	void m_changeDirection();
 	float m_currentHeading; // angle the ship is looking
 	glm::vec2 m_currentDirection; // vector the ship is moving

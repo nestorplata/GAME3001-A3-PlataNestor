@@ -166,12 +166,14 @@
     <ClCompile Include="..\src\BaseEnemy.cpp" />
     <ClCompile Include="..\src\Bullet.cpp" />
     <ClCompile Include="..\src\Button.cpp" />
+    <ClCompile Include="..\src\CloseCombatEnemy.cpp" />
     <ClCompile Include="..\src\CollisionManager.cpp" />
     <ClCompile Include="..\src\ImGuiWindowFrame.cpp" />
     <ClCompile Include="..\src\LifeBar.cpp" />
     <ClCompile Include="..\src\NavigationObject.cpp" />
     <ClCompile Include="..\src\Obstacle.cpp" />
     <ClCompile Include="..\src\PathNode.cpp" />
+    <ClCompile Include="..\src\RangeCombatEnemy.cpp" />
     <ClCompile Include="..\src\SpaceShip.cpp" />
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
@@ -211,6 +213,7 @@
     <ClInclude Include="..\src\BaseEnemy.h" />
     <ClInclude Include="..\src\Bullet.h" />
     <ClInclude Include="..\src\Button.h" />
+    <ClInclude Include="..\src\CloseCombatEnemy.h" />
     <ClInclude Include="..\src\CollisionManager.h" />
     <ClInclude Include="..\src\CollisionShape.h" />
     <ClInclude Include="..\src\Config.h" />
@@ -221,6 +224,7 @@
     <ClInclude Include="..\src\NeighbourTile.h" />
     <ClInclude Include="..\src\Obstacle.h" />
     <ClInclude Include="..\src\PathNode.h" />
+    <ClInclude Include="..\src\RangeCombatEnemy.h" />
     <ClInclude Include="..\src\SoundType.h" />
     <ClInclude Include="..\src\SpaceShip.h" />
     <ClInclude Include="..\src\Sprite.h" />

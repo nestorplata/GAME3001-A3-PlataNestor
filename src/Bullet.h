@@ -18,10 +18,14 @@ public:
 	void draw() override;
 	void update() override;
 	void clean() override;
+
+	
 private:
 	std::string texture;
 	glm::vec2 direction;
 	glm::vec2 SpaceShip;
+
+	bool Colided;
 };
 
 #endif /* defined (__BULLET__) */
