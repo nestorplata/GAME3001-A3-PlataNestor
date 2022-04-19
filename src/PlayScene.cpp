@@ -434,10 +434,10 @@ void PlayScene::start()
 	m_pEnemyLifeBar->setHeight(25);
 	addChild(m_pEnemyLifeBar, 5);
 
-	//int EnemyGenerator = rand() % 2;
-	//if (EnemyGenerator == 0)
-	//	m_pTarget = new CloseCombatEnemy(this);
-	//else
+	int EnemyGenerator = rand() % 2;
+	if (EnemyGenerator == 0)
+		m_pTarget = new CloseCombatEnemy(this);
+	else
 		m_pTarget = new RangeCombatEnemy(this);
 
 	m_pTarget->getTransform()->position = glm::vec2(400.0f, 500.0f);
